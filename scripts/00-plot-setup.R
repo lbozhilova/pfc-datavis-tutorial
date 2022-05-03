@@ -1,12 +1,12 @@
 ###########################
-##### Mu ggplot theme #####
+##### My ggplot theme #####
 ###########################
 
 # Last edited: 07/04/22
 # Description: A custom ggplot theme I frequently use.
 
 #----- Packages
-library("tidyverse")
+require("tidyverse")
 
 #----- Theme
 theme_lvb <- theme_minimal(base_size = 10) +
@@ -31,13 +31,14 @@ theme_lvb <- theme_minimal(base_size = 10) +
 
 #----- Save figure
 plot_save <- function(p, filename, size = 1, ar = 1, dev = "jpeg"){
-  allowed_devs <- c("eps", "ps", "tex", "pdf", "jpeg", "tiff", "png", "bmp", "svg")
+  allowed_devs <- c("eps", "ps", "tex", "pdf", "jpeg", 
+                    "tiff", "png", "bmp", "svg")
   if (!(dev %in% allowed_devs))
     stop("Invalid device.")
+  if (dev != "jpeg" & !str_detect(filename, paste0("\\.", dev)))
+    filename <- paste0(filename, ".", dev)
   if (dev == "jpeg" & !str_detect(filename, "\\.jpg|\\.jpeg"))
-    filename <- paste0(filename, ".jpg") else
-      if (!str_detect(filename, paste0("\\.", dev)))
-        filename <- paste0(filename, ".jpg")     
+    filename <- paste0(filename, ".jpg")
   w <- round(190 * size)
   h <- w/ar
   ggsave(filename = filename,

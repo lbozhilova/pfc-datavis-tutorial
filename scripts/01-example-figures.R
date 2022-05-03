@@ -1,37 +1,65 @@
+###########################
+##### Example figures #####
+###########################
+
+# Last edited: 26/04/22
+# Description: Figures used at the beginning of the tutorial.
 
 #----- Packages
 require("tidyverse")
-require("lubridate")
 require("MetBrewer")
+require("cowplot")
+require("ggrepel")
 
 #----- Code
-# TODO: move theme
-source("~/Code/aux/plot-setup.R")
+source("scripts/00-plot-setup.R")
 
 #----- Data
-df <- read_csv("runs.csv")[1:33, ]
-df$Date <- parse_date_time(df$Date, orders = "dmy")
-df$Weekend <- weekdays(df$Date) %in% c("Saturday", "Sunday")
+data(iris)
 
 #----- Plot
-wnd_cols <- met.brewer("Java", 2)
-wnd_labs <- c("TRUE" = "Weekend", "FALSE" = "Weekday")
+iris_cols <- met.brewer("Java", 3)
+names(iris_cols) <- unique(iris$Species)
+iris_labs <- paste("I. ", unique(iris$Species))
+names(iris_labs) <- unique(iris$Species)
 
-p <- ggplot(df, aes(x = Date, y = Length, colour = Weekend)) +
+p <- ggplot(iris, aes(x = Petal.Length, fill = Species)) +
   theme_lvb +
-  ggtitle("Lyuba's runs in 2022") +
-  geom_point(size = 2) +
-  scale_x_datetime("Date", date_breaks = "months" , date_labels = "%b-%y", limits = c(as.POSIXct("2022-01-01"), NA)) +
-  scale_y_continuous("Distance (km)", limits = c(0, 22), breaks = seq(0, 20, 5)) +
-  scale_colour_manual("", values = wnd_cols, labels = wnd_labs)
-plot_save(p, "runs_example.jpg", size = 0.5)
+  ggtitle("Iris petal length differs by species") +
+  geom_histogram(position = "identity", alpha = 0.7, binwidth = .25) +
+  scale_x_continuous("Petal length (cm)", breaks = 0:7) +
+  scale_y_continuous("Count") +
+  scale_fill_manual("Species", values = iris_cols, labels = iris_labs)
+p
 
-q <- ggplot(df, aes(x = Weekend, y = Length, fill = Weekend)) +
-  theme_lvb + theme(legend.position = "none") +
-  ggtitle("Lyuba's runs in 2022 (2)") +
-  geom_boxplot() +
-  scale_x_discrete("", labels = wnd_labs) +
-  scale_y_continuous("Distance (km)", limits = c(0, 22), breaks = seq(0, 20, 5)) +
-  scale_fill_manual("", values = wnd_cols, labels = wnd_labs)
+q <- ggplot(iris, aes(x = Petal.Length, y = Petal.Width)) +
+  theme_lvb +
+  ggtitle("Iris petal length and width are correlated") +
+  geom_smooth(method = "lm", colour = "grey70") +
+  geom_point(aes(colour = Species)) +
+  scale_x_continuous("Petal length (cm)", breaks = 0:7) +
+  scale_y_continuous("Petal width (cm)", breaks = 0:3) +
+  scale_colour_manual("Species", values = iris_cols, labels = iris_labs)
 q
-plot_save(q, "runs_exercise.jpg", size = 0.5)
+
+p1 <- ggplot(iris, aes(x = Petal.Length, fill = Species)) +
+  geom_histogram()
+plot_grid(p, p1)
+
+plot_save(p, "figures/ex_iris_1.jpg", size = .5)
+plot_save(q, "figures/ex_iris_2.jpg", size = .5)
+plot_save(plot_grid(p, p1), "figures/ex_iris_compare.jpg", size = 1, ar = 2)
+
+
+df <- cbind(iris, Label = "")
+df$Label[c(10, 60, 110)] <- paste("I.", as.character(df$Species[c(10, 60, 110)]))
+q1 <- ggplot(df, aes(x = Petal.Length, y = Petal.Width, colour = Species)) +
+  theme_lvb + theme(legend.position = "none") +
+  ggtitle("Iris petal length and width are correlated") +
+  geom_point() +
+  geom_text_repel(aes(label = Label), size = 5, force_pull = 1.5) +
+  scale_x_continuous("Petal length (cm)", breaks = 0:7) +
+  scale_y_continuous("Petal width (cm)", breaks = 0:3) +
+  scale_colour_manual("Species", values = iris_cols, labels = iris_labs)
+q1
+

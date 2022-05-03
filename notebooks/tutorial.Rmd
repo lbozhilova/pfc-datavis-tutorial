@@ -15,271 +15,528 @@ A key part of our job as research scientists is to communicate our findings to a
 
 This is why I believe it is important that making figures isn't painful and confusing, but rather that it's something we approach systematically and with a level of confidence. With this tutorial I want to introduce you to the way I think about figure prototyping, i.e. the process of building and refining figures. To do so, I'll use one of the most popular software packages for data visualisation, `ggplot2`. There are two reasons for this: firstly, it's ~~cool~~ incredibly powerful and versatile, and secondly, it explicitly follows a layered *grammar of graphics*. This grammar provides a systematic way of thinking and describing the components of a figure.
 
-## What is the Grammar of Graphics?
-
-The "gg" in `ggplot2` stands for "grammar of graphics". If the grammar of a language is a way of describing the components of a sentence (subject, verb, object) and how they fit together, then a grammar of graphics is a way of describing the components of a plot (data, axes, shapes). Just like grammar differs from language to language, so it can differ from one data visualisation tool to another. However, when people talk about *the* grammar of graphics, they usually mean the grammar first described by [Leland Wilkinson](https://link.springer.com/book/10.1007/0-387-28695-0) and later extended and implemented by [Hadley Wickham](https://vita.had.co.nz/papers/layered-grammar.html).
-
-The basic idea behind this grammar is that we can (semi-)independently specify plot building blocks and combine them to create arbitrarily complex figures. The three types of blocks we must explicitly specify for every `ggplot2` figure are **data**, **aesthetic mapping(s)** and **geometric object(s)**. Other blocks, usually handled by default in the background, include statistical transformations, scales, a coordinate system, faceting, and theme.
-
-Before we move on to code, let's illustrate the grammar of graphics. The figure below shows my running progress so far this year.
-![](runs_example.jpg){width=50%}
-
-One of my resolutions for 2022 is to do a certain amount of running over the course of the year. The **data** you see plotted above comes from the spreadsheet I use to keep track of my progress. There are a number of variables I record, but the only ones I have used for the plot are date, weekday, and distance.
-
-The **aesthetic mappings** of the plot map the different data variables to things like axes, colours, shapes and sizes. In the plot above, there are three aesthetic mappings: dates are mapped to the x-axis, weekdays are mapped to colours (purple and orange), and distance is mapped to the y-axis.
-
-Finally, **geometric objects** describe the types of plot you see. They can be things like histograms, box plots, heat maps, etc. One of the features which make `ggplot2` so versatile is that it allows us to layer different geometric objects  on top of each other to make one complex figure. To keep things simple, in the example above I used only one geometric object: a scatter plot.
-
-Now that you have an idea of what data, aesthetic mappings, and geometric objects are, why don't you give it a try? Can you identify the different "blocks" of the plot below?
-
-![](runs_exercise.jpg){width=50%}
+The tutorial will have three parts. First, we will discuss the grammar of graphics. This part will be entirely code-free, but will hopefully help demystify the code to come. Then we will move on to a proper, reasonably extensive `ggplot2` tutorial, showcasing some of the most commonly used features. Finally, we will go through a figure prototyping example to illustrate how a complex figure is built line-by-line. But before we jump into it, let's set up.
 
 ## Materials and set-up
 
-You should have `R` and RStudio installed. If not, first go to [CRAN](https://cran.r-project.org/) to download and install R, and afterwards head to the RStudio [website](https://www.rstudio.com/).
+You should have R and RStudio installed for this tutorial. If not, first go to [CRAN](https://cran.r-project.org/) to download and install R, and afterwards head to the RStudio [website](https://www.rstudio.com/).
 
 This R Markdown notebook was written in `R 4.1.3`. You can check your version by typing `version$version.string` in `R`. There are different ways of updating `R` if you need to. I'm fond of [`updateR()`](https://www.rdocumentation.org/packages/installr/versions/0.23.2/topics/updateR) from the `installr` package.
 
-The packages we will use for this tutorial are `tidyverse`, which contains `ggplot2`, and `cowplot`, from which we will use `plot_grid()` in order to make compound figures. You can install or update packages in the usual way if you need to.
+The packages we will use for this tutorial are `tidyverse` (which contains `ggplot2`) and `cowplot`, from which we will use `plot_grid()` in order to make compound figures. You can install or update packages in the usual way if you need to.
 ```{r install, eval = FALSE}
 install.packages("tidyverse")
 install.packages("cowplot")
 ```
 
-Finally, we need to load the packages.
+Once you have everything installed and updated, we need to load the packages.
 ```{r packages}
 library("tidyverse")
 library("cowplot")
 ```
 
-## Workshop overview
+Finally, throughout this tutorial I will use [Fisher's iris data set](https://en.wikipedia.org/wiki/Iris_flower_data_set). This famous toy data set contains petal and sepal measurements obtained from 150 individual flowers across three iris species. It might be familiar to you from other workshops and tutorials, but don't worry if not. We can load it and take a look.
 
-
-
-
-
-
-
-
-
-## Why do we make figures?
-
-The very first step of making a figure is figuring out what you want to get out of it. In their excellent Data Vis workshop Sam Way and Dan Larremore identify two main reasons we make figures: telling people what to see, and allowing people to explore. Telling people what to see is all about story-telling and driving a message. The reason during a journal club we usually go through the figures of a paper is because they contain the authors' main messages: that treatment groups are different from controls, that interesting trends develop over time, that a new algorithm achieves higher accuracy than previously published ones, etc. We are visual thinkers and like not only to be told things but also to be shown them.
-
-Of course, we also make figures before we have a complete story to tell. When someone sends me their data "to look at", literally looking at it is the first thing I do. In statistics we even have a formal term for this process: exploratory data analysis. It is helpful to us personally as we try to make sense of the data we work with, and it is also extremely helpful when we talk to colleagues about any challenges we face or unanswered questions we have.
-
-If this is all sounding a bit abstract, let us illustrate with a bit of data. Throughout, I will be using [Edgar Anderson's iris data](https://en.wikipedia.org/wiki/Iris_flower_data_set), which you may have seen in other software tutorials. It is a dataset of containing the sepal length and width and petal length and width of 50 flowers each of three different species of iris.
-
-```{r iris}
+```{r load_iris_data}
 data(iris)
 head(iris)
 ```
 
-What you see above is the first few lines of the *data frame* `iris`, every row of which corresponds to a single observation, or flower. There are five measurements associated with each observation: the sepal and petal lengths and widths measured in cm, and the iris species, which is always one of `setosa`, `versicolor`, or `virginica`.
+## What is the Grammar of Graphics?
 
-**Exercise 1** Why might you want to plot this data? Is there a particular message you would like to drive or a specific question you would like to explore by plotting the data?
+The "gg" in `ggplot2` stands for "grammar of graphics". If the grammar of a language is a way of describing the components of a sentence, e.g. subject, verb, object, and how they fit together, then a grammar of graphics is a way of describing the components of a plot, e.g. data, axes, shapes. Just like grammar differs from language to language, so it can differ from one data visualisation tool to another. However, when people talk about *the* grammar of graphics, they usually mean the grammar first described by [Leland Wilkinson](https://link.springer.com/book/10.1007/0-387-28695-0) and later extended and implemented by [Hadley Wickham](https://vita.had.co.nz/papers/layered-grammar.html).
 
-For example, I am curious how petal size varies across the three iris species. This is what I will focus on for the rest of the tutorial. I encourage you to come up with a question of your own here, and try and make plots that are relevant to your question for the rest of the tutorial.
+The basic idea behind this grammar is that we can (semi-)independently specify plot building blocks and combine them to create arbitrarily complex figures. The three types of blocks we must explicitly specify for every `ggplot2` figure are **data**, **aesthetic mapping(s)** and **geometric object(s)**. Other blocks, usually handled by default in the background, include statistical transformations, scales, a coordinate system, faceting, and theme.
 
-## How does `ggplot2` work?
+Let's illustrate the grammar of graphics. I made the plot below using `ggplot2`, although in principle I could have used base R, Excel, Prism, or even drawn it by hand. However a figure has been generated, we can always talk about it in terms of the grammar of graphics, even if we don't see the code used to make it, or if in fact there is no code.
 
-In its simplest form, the code to make a `ggplot2` figure looks something like this:
-```{r pseudo, eval = FALSE}
-ggplot(<some data>, aes(<stuff about axes and legends>)) +
-  geom_<something>()
+![](../figures/ex_iris_1.jpg){width=50%}
+
+The **data** you see plotted above is the same iris data set I showed you earlier. While you have seen that the full data set contains a number of different measurements, only petal length and species are shown here.
+
+The **aesthetic mappings** of the plot link these measurements to plot elements like axes, colours, shapes, and sizes. In the plot above, there are two aesthetic mappings: petal length is mapped to the x-axis, and species is mapped to colour (or technically, fill). What about the y-axis? It stands for count, which is not a measurement recorded in the data, but is instead calculated implicitly when making the plot. This is why it doesn't count (pun intended) as an aesthetic mapping. If you are trying to figure out what the aesthetic mappings of a plot are, you need to ask yourself (1) what measurements are present in the plot, and (2) how they are represented using axes, colours, and so on.
+
+Finally, **geometric objects** describe the types of common statistical plots you see. They can be things like bar charts, scatter plots, box plots, etc. One of the features which make `ggplot2` so versatile is that it allows us to layer different geometric objects  on top of each other to make one complex figure. In the example above I used only one geometric object: a histogram. In order to identify the geometric objects in a plot, you have to ask yourself what common different types of plots you can see. Keep in mind there might be more than one!
+
+**Exercise 1: The Grammar of Graphics.** Now that you have an idea of what data, aesthetic mappings, and geometric objects are in the context of the grammar of graphics, why don't you give it a try? Can you identify the different "building blocks" of the plot below? If you wish to spend longer on this exercise, try doing the same for the figures in the last research article you read. Alternatively, head over to your favourite news website and see if you can find some data visualisations there to practise on. Articles on the climate emergency, demographics, and elections are all good places to look.
+
+![](../figures/ex_iris_2.jpg){width=50%}
+
+## `ggplot()` syntax overview
+
+We have discussed the grammar of graphics in theory, but what does it look like as code? In its simplest form, the code to make a `ggplot2` figure looks something like this:
+
+```{r pseudo_general, eval = FALSE}
+ggplot(<data>, aes(<aesthetic mappings>)) +
+  geom_<object>()
 ```
 
-The bits that we have to fill in are the three core parts of every figure as per the grammar of graphics I mentioned earlier: data, aesthetic mapping, and geometric object(s). The data `ggplot()` expects is in the form of a data frame, like `iris` above. This is not just an arbitrary software quirk. It reflects the fact that most of the time when we collect data, we record multiple measurements (including metadata) for a number of observations. Like in our sample data, rows should always correspond to distinct observations, and columns should correspond to different types of measurements. These measurements can be numeric, e.g. `Petal.Length`, but they can also be discrete, e.g. `Species`. 
+The first plot we discussed was a histogram of petal lengths, coloured by iris species. I added a title and used a few other features to customise my plot, but a simple version of the same figure can be generated using:
 
-After we have the data, the next thing to figure out is the *aesthetic mapping*. This roughly relates to how axes, colours, and shapes are used in the plot, but crucially without specifying what type of plot we are making. Earlier I said I was interested in exploring petal size. One possible aesthetic mapping would be to say that *the x-axis corresponds to petal length*, or `aes(x = Petal.Length)`. This would later allow me to make a histogram of the petal lengths. If I wanted to include the different iris species in the figure, I might do so by filling the histogram bars by species `aes(x = Petal.Length, fill = Species)`. There are a different aesthetics I can map in this way: `x` and `y` for the two axes, `colour` and `fill` for border and fill colours respectively, `size`, `shape`, `linetype`, etc.
-
-Note that while I mentioned histograms above, setting the aesthetic mapping is not enough to fully specify the final figure. In fact, I could make density plots with the exact same aesthetic mapping! In order to make these different types of plots, we use different *geometric objects* or geoms. To make a histogram, we use `geom_histogram()`. To make a density plot, we instead use `geom_density()`. There are a large number of different geoms, corresponding to all the common plot types: `geom_point()` for scatter plots, `geom_line()` for lines, `geom_boxplot()`, `geom_violin()`, etc. 
-
-**Exercise 2** What aesthetic mapping and geometric object would you choose based on your answer in the previous exercise?
-
-Adding the data, aesthetic mapping and geometric object together, we are ready to make our first `ggplot2` figure. 
-```{r first}
+```{r pseudo_ex1, eval = FALSE}
 ggplot(iris, aes(x = Petal.Length, fill = Species)) +
   geom_histogram()
 ```
 
-## Picking the right aesthetic mappings and geometric objects
+Unlike plotting in base R, the **data** used in `ggplot()` must be in a data frame format. Like in `iris`, rows should always correspond to different samples, and columns should correspond to different measurements. Luckily for us, this is arguably the most standard way to record data, and you might find a lot of your spreadsheets already look like this.
 
-As a process, making figures can be split in three consecutive parts:   
-  1. decide what message you want to drive, or what aspects of the data you want to explore,    
-  2. pick the right aesthetic mappings and geometric objects for your goal, and   
-  3. adjust the visuals (e.g. colour schemes, fonts, etc.) to make the final figure.
-  
-I originally set out to explore petal size across iris species. In the histogram above, I plotted petal length. However, I have another measurement of petal size, its width. I could make a similar set of histogram showing petal width, and also a scatter plot to explore the relationship between length and width. This would mean making three separate plots, which I can combine in a single compound figure. Let's give that a go.
+The reason to insist on this format is that we can then set **aesthetic mappings** by referring to the column names of the data frame. Above, `x = Petal.Length` means that the measurements recorded  in `iris$Petal.Length` should go on the x-axis. Similarly, `fill = Species` means that the fill (i.e. inside colour of a 2D object, as opposed to its boundary colour) is determined by `iris$Species`.
 
-```{r proto}
-hist_length <- ggplot(iris, aes(x = Petal.Length, fill = Species)) +
-  geom_histogram()
-hist_width <- ggplot(iris, aes(x = Petal.Width, fill = Species)) +
-  geom_histogram()
-scatter_species <- ggplot(iris, aes(x = Petal.Length, y = Petal.Width, colour = Species)) +
+Finally, the **geometric object** here, affectionately known as a geom, is a histogram. This is why it is written as `geom_histogram()`. Good code is pretty self-explanatory like that.
+
+There are several differences between the very first plot I showed you and the "default" plot you will get running the two lines of code above. Let's put them side by side to compare and contrast. The plot on the left is the one I showed you earlier, and the plot on the right is the result of the two lines of code above.
+
+![](../figures/ex_iris_compare.jpg){width=100%}
+The data, aesthetic mappings, and geometric objects in both plots are exactly the same. The differences you see are purely stylistic, and are controlled by some of the optional features of `ggplot2`. Some geoms have extra parameters you can tweak, including **statistical transformations** and position. I manually set the histogram bins in my plot to be different from the default, and also made the histograms corresponding to different species overlap instead of stacking on top of each other. I then edited the **scales** of the plot, in order to change the axis labels and histogram colours. I also used a different **theme** which is why the background colours, fonts, and legend positions in the two plots are different. Finally, I also added a title to my plot. 
+
+Throughout the rest of the tutorial, we will dig a little deeper into all these plot elements and a couple of others. Some things we won't have time to cover in great detail (e.g. colour palettes and creating your own custom themes), but I'll signpost you to other resources you can read.
+
+## Aesthetic mappings and geometric objects
+
+The connection between aesthetic mappings and geometric objects isn't entirely straightforward. They are not independent of each other: we usually specify both the x- and the y-axis for a scatter plot, but only the x-axis for a histogram. But neither are aesthetic mappings specific to a geom. When we make a complex figure including multiple geoms (e.g. a scatter plot together with a regression line), they might share some aesthetics, e.g. the x- and y-axis, but not others, e.g. colour. 
+
+As a general rule, every geom will have some required aesthetics, some it complains about or ignores, and some that are optional. You don't need to know these by heart. Most of the time the obvious things work, and troubleshooting tends to be reasonably straightforward. However, it helps to be aware of the most commonly used aesthetics you can toggle.
+
+### Aesthetics
+
+#### Axes
+
+The two major aesthetics are the axes, `x` and `y`. Axes can map to both continuous variables, such as `Petal.Length`, or discrete ones, such as `Species`. Below is a boxplot which illustrates both.
+
+``` {r cont_disc}
+ggplot(iris, aes(x = Species, y = Petal.Length)) +
+  geom_boxplot()
+```
+
+#### Colour and fill
+
+The other most commonly used aesthetics are for `colour` and `fill`. Here, `colour` stands for the colour of one-dimensional "thin" shapes such as points and lines, as well as the border colour of 2D shapes like bars and tiles. Fill stands for the "inside" colour of bars and tiles, as well as the shading of areas more generally. Scatter plots can have a `colour` mapping but will ignore `fill`, as points don't have an inside area to fill.
+
+``` {r col_ex_point}
+ggplot(iris, aes(x = Petal.Length, y = Petal.Width, colour = Species)) +
   geom_point()
-plot_grid(hist_length, hist_width, scatter_species)
+ggplot(iris, aes(x = Petal.Length, y = Petal.Width, fill = Species)) +
+  geom_point()
 ```
 
-As you can see, the two histograms share the same data and geom but have different aesthetic mappings for `x`. The scatter plot has an additional `y` mapping.
+Meanwhile, histograms and boxplots can have both `colour` and `fill` mappings, although usually we want to focus on fill.
 
-**Exercise 3** Come up with two or three different figures of your own. How do their aesthetic mappings and geoms differ?
-
-Now let's explore the histograms in a little more detail. Currently, they are stacked, meaning colours are packed on top of each other. For example, there are twelve flowers with petal length between 5.0 and 5.1, of which ten are *Iris virginica* and two are *Iris versicolor*. This is why most of the corresponding bin in the histogram is blue and a little bit of it is green. However, we might wish to have the colours overlap instead of stack on top of each other. We can do this by setting `position = "identity"` in the histogram call. A lot of geoms have  extra parameters like this, and it is worth looking them up when you are stuck on a plot!
-```{r proto_hist}
-hist_length <- ggplot(iris, aes(x = Petal.Length, fill = Species)) +
-  geom_histogram(position = "identity")
-hist_length
+``` {r col_ex_hist}
+ggplot(iris, aes(x = Petal.Length, colour = Species)) +
+  geom_histogram()
+ggplot(iris, aes(x = Petal.Length, fill = Species)) +
+  geom_histogram()
 ```
 
-You can see that the bar starting at 5.0 has gone down to 10 and is all blue now. This is because the extra two *Iris versicolor* data points in that bar are hidden behind the *Iris virginica*. We can fix this by making the colours transparent, which will allow us to see the overlap. I will do that later, when I get to adjusting the visuals.
+Like axes, colours can map to both discrete variables, as above, or continous ones. By default, low values start in dark blue and gradually turn lighter, but later we will see how to fine-tune this gradient.
 
-Moving on to the scatter plot, I can see that there is a really strong relationship between petal length and width. Perhaps I could add a regression line to that plot? I can do thisby adding `geom_smooth()` to the original plot, setting `method = "lm"` in order to fit a standard linear model and not another type of curve. Again, `method` is one of these not-so-obvious extra parameters that geoms can sometimes have.
+``` {r col_ex_point2}
+ggplot(iris, aes(x = Petal.Length, y = Petal.Width, colour = Sepal.Length)) +
+  geom_point()
+```
 
-```{r proto_scatter}
-scatter_species <- ggplot(iris, aes(x = Petal.Length, y = Petal.Width, colour = Species)) +
+#### Shape and linetype
+
+It is often a good idea to make figures colourblind-friendly and suitbale for black and white printing, and the easiest way to do this is to change the shapes of points and lines. Point shape are given by `shape` and line type is given by, you guessed it, `linetype`. Below is an example which uses different colour and shape simultaneously. 
+
+``` {r shape_ex}
+ggplot(iris, aes(x = Petal.Length, y = Petal.Width, colour = Species, shape = Species)) +
+  geom_point()
+```
+
+#### Aesthetic mapping vs aesthetic assignment
+
+So far we have talked about aesthetic mappings, i.e. linking a particular aesthetic to a variable in the data. But occasionally you may want to keep aesthetics fixed to a particular value. For example, you might want to make a scatter plot with cornflower blue points, instead of colouring the points by species. We can set this using the same aesthetic `colour`, but moving it from the `aes()` call to the geom instead.
+
+``` {r assign_ex_1}
+ggplot(iris, aes(x = Petal.Length, y = Petal.Width, shape = Species)) +
+  geom_point(colour = "cornflowerblue")
+```
+
+This is no longer and aesthetic _mapping_, since we are not mapping any data variables. Instead, it is an aesthetic _assignment_, as we are assigning a fixed value. There are some aesthetics I assign more often than others: `size`, which controls point size and line width, and `alpha` for colour transparency.
+
+This is just the tip of the iceberg, of course. If you want to learn more, especially about different point shapes, line types and the like, check out this official documentation [page](https://ggplot2.tidyverse.org/articles/ggplot2-specs.html).
+
+### Layering geometric objects
+
+So far we have seen three types of geometric objects: histograms `geom_histogram()`, scatter plots `geom_point()` and boxplots `geom_boxplot()`. Listing all geoms is well beyond the scope of this tutorial, and if I'm being honest beyond the scope of my own knowledge. Suffice it to say, there is a geom for just about any commonly used type of statistical plot out there. Instead, here I'll give some examples of commonly used geoms and how they can be combined.
+
+#### Layering
+
+You might have noticed that right at the start I referred to the grammar of graphics as "layered". This refers to our ability to add geoms together and layer them on top of each other. One of the things I frequently do is make violin plots and add small boxplots inside them, to visualise the median and upper and lower quartiles of each distribution.
+
+```{r layer_comb}
+ggplot(iris, aes(x = Species, y = Petal.Length)) +
+  geom_violin() +
+  geom_boxplot(width = .15)
+```
+
+If you've ever used an image editing tool like Photoshop, Inkscape, or Gimp, you might be familiar with the concept of layering. It's this idea that when you put opaque images on top of each other, bottom layers are hidden underneath top layers. We can control this by adjusting layer transparency and being careful about how we order things. In `ggplot2`, geoms are layered in the order you type them, i.e. earlier geoms appear under later ones. This means that the large violin plots are below the small box plots. However, if I swapped the order of the geoms above, the boxplots will no longer be visible because they remain hidden behind the violins.
+
+```{r layer_comb_2}
+ggplot(iris, aes(x = Species, y = Petal.Length)) +
+  geom_boxplot(width = .15) +
+  geom_violin()
+```
+
+**Exercise 2: Layering.** Another way to make sure background layers are visible is by making foreground layers transparent. Can you edit just the last line of the code above (reordering geoms or adding new ones is not allowed) to make this picture?
+```{r layer_comb_3, echo = FALSE}
+ggplot(iris, aes(x = Species, y = Petal.Length)) +
+  geom_boxplot(width = .15) +
+  geom_violin(alpha = 0.25)
+```
+
+#### Shared and private aesthetics
+
+In the example above, the violin plots and the box plot shared the same aesthetic mappings, namely species for the x-axis and petal length for the y-axis. Axes are usually shared by all geoms in a plot. However, aesthetics don't have to be shared all the time. It is quite common to share some aesthetics and keep others private to specific geoms.
+
+For example, suppose that I wanted to colour the violin plots by species, but keep the boxplots white for contrast. If I add `fill = Species` in my usual `aes()` call, I end up colouring both, which isn't what I set out to do.
+
+```{r share_ex}
+ggplot(iris, aes(x = Species, y = Petal.Length, fill = Species)) +
+  geom_violin() +
+  geom_boxplot(width = .15)
+```
+
+This is because anything from the `aes()` inside the `ggplot()` function gets passed down to all geometric objects underneath.  These are all shared aesthetics. However, I can add a new `aes()` mapping that is private just to one geom only: it will affect that specific geom, but nothing else. If I set `aes(fill = Species)` to be private to `geom_violin()`, then it wouldn't affect the boxplot, which would remain white by default.
+
+```{r share_ex_2}
+ggplot(iris, aes(x = Species, y = Petal.Length)) +
+  geom_violin(aes(fill = Species)) +
+  geom_boxplot(width = .15)
+```
+
+**Exercise 3: Shared and private aesthetics.** It is completely and shamelessly unjustifiable stylistically, but can you make the picture below?
+```{r share_ex_3, echo = FALSE}
+ggplot(iris, aes(x = Species, y = Petal.Length)) +
+  geom_violin(aes(colour = Species)) +
+  geom_boxplot(width = .15, aes(fill = Species))
+```
+
+### Fine-tuning geoms
+
+Data visualisation is ultimately a branch of statistics and like all branches of statistics, it (unfortunately) requires some maths to be done, if not by us, then by the computer. And different types of plots, i.e. different geoms, require different calculations.
+
+A scatter plot `geom_point()` is easy: we take the data as it is, no maths necessary. A histogram `geom_histogram()` is, however, more involved: we need to decide how to bin the data, and then count how many points fall in each bin. Therefore, it makes sense for us to be able to set things like binwidth or breakpoints in a histogram. In order to get the right height and shape boxplot `geom_boxplot()` we need to calculate the median and interquartile range of the data, instead of binning it. A violin plot `geom_violin()` may intuitively feel like a type of boxplot, but the maths behind it is different still: instead of quartiles, the shape of the distribution is estimated. Different geoms then require different _statistical transformations_.
+
+#### Stats
+
+This is where things get a little abstract and esoteric, apologies for which. At least I can hand-to-heart promise you're unlikely to ever need to worry about these too much.
+
+Every geom has a default corresponding stat. There are properly `stat_*()` functions that handle the necessary statistical transformations, but most of the time we think of them as parameters in the `geom_*()` function. Since in `geom_point()` we leave the data as-is, its stat is `stat = "identity"`. In histograms, the default stat is `stat = "bin"`, because we need to bin the data. Etc., etc. 
+
+What happens if we try to change the `stat` away from the default? Let's try. Below, I've used `geom_point()` but with the same stat that histograms require. What we end up with looks a bit like a histogram, except made of points instead of bars. That's because in `ggplot2`, the stat controls the calculation (in this case, binning data), and the geom controls the way it's visualised (in this case, using points).
+
+```{r }
+ggplot(iris, aes(x = Petal.Length, colour = Species)) +
+  geom_point(stat = "bin")
+```
+
+Is changing stats ever actually useful? Yes, albeit very rarely. Most of the time, you'll find there is already a geom best suited to the stat you want. Still, understanding stats is important because (a) it makes navigating `ggplot2` documentation easier, and (b) you can look through which optional parameters you can adjust.
+
+#### Additional parameters
+
+Geoms have additional parameters you can tweak, some of which they inherit from the underlying stat. We used one such parameter earlier: `width` can make things like boxplots and bars narrower. Try varying the value of width below to see what happens.
+
+```{r eval = FALSE}
+ggplot(iris, aes(x = Species, y = Petal.Length)) +
+  geom_violin() +
+  geom_boxplot(width = 0.15)
+```
+
+The default way `stat_bin()` works is by binning data into 30 equally-sizes bins. But we can fix the number of bins with `bins`, their width with `binwidth`, or create variable bins by setting their boundaries with `breaks`. This is particularly useful when we make histograms. Note that while it's technically the stat that does the calculation, and so uses the bin parameters, I put them directly in `geom_histogram()`, without worrying about the rest. 
+
+```{r}
+ggplot(iris, aes(x = Petal.Length, fill = Species)) +
+  geom_histogram(binwidth = 0.25)
+```
+
+The other useful geom to know how tweak is one we haven't mentioned before: `geom_smooth()`. By default, it fits a curve through the data.
+```{r}
+ggplot(iris, aes(x = Petal.Length, y = Petal.Width)) +
+  geom_point() +
+  geom_smooth()
+```
+
+In the figure above, the blue curve is the fitted model, and the grey band is its 95% confidence interval. The model in question is LOESS, a kind of local polynomial regression that you might not be familiar with, or that might not be relevant to the statistical analysis you actually do on your data. Much more often, we want to specify a linear model instead, which we can do using the `method` parameter.
+
+```{r}
+ggplot(iris, aes(x = Petal.Length, y = Petal.Width)) +
   geom_point() +
   geom_smooth(method = "lm")
-scatter_species
 ```
 
-Oh, no! I had imagined a single line passing through all three species. Instead, I got three separate lines. The aesthetic mappings in the `ggplot()` call all get passed down to both `geom_point()` and `geom_smooth()`. When we set `colour = Species`, `geom_point()` uses it to colour the points on the scatter plot differently, which is what we want. However, `geom_smooth()` also uses it to make three linear fits in the three different colours. The issue is that aesthetic mappings set in `ggplot()` get passed down to all `geom_*()` objects, not just the ones we would like.
+By default, a linear model plotted like that fits `lm(y ~ x)`. However, we can specify the formula if we wanted to. Note the `formula` parameter uses the aesthetics we have mapped (in this case the axes `x` and `y`), not the data variable names. We can also hide the confidence interval by setting `se = FALSE` or make it wider, by setting another value, e.g. `se = .90` for a 90% confidence interval
 
-To fix the problem, we can move the colour mapping from the main `ggplot()` call to `geom_point`. In this version of the plot, both `geom_point()` and `geom_smooth()` use the same aesthetic mapping for the x- and y-axes, because these are set in the main `ggplot()` call. However, only `geom_point()` uses colour to denote species.
-
-```{r proto_scatter2}
-scatter_species <- ggplot(iris, aes(x = Petal.Length, y = Petal.Width)) +
-  geom_point(aes(colour = Species)) +
-  geom_smooth(method = "lm")
-scatter_species
+```{r}
+ggplot(iris, aes(x = Petal.Length, y = Petal.Width)) +
+  geom_point() +
+  geom_smooth(method = "lm", formula = y ~ sqrt(x), se = .90)
 ```
 
-**Exercise 4** What are the best combinations of aesthetics and geometric objects you need to make your figures? Did you have to tweak anything?
-
-## Adjusting the visuals
-
-### Themes
-
-So far we have a basic working set of figures: two histograms and a scatter plot. The thing that is left to do is to make them pretty. One way to do so is by changing the theme of the plots. There are a number of themes already available in `ggplot2`, and we can overwrite some of their features to make our own. Themes control aspects of the plot such as background colour, text font, and legend position. We add them to a plot the same way we add geometric objects. The order does not matter much, but by convention I like adding the theme before any of the geoms. You can also overwrite the theme by adding another theme after it. Here is the same plot with three different themes. 
-
-```{r theme}
-scatter_theme <- scatter_species + theme_classic()
-scatter_theme2 <- scatter_species + theme_dark()
-plot_grid(scatter_species, scatter_theme, scatter_theme2)
+**Exercise 4: Smoothers.** Can you make the figure below? 
+```{r share_ex_4, echo = FALSE}
+ggplot(iris, aes(x = Petal.Length, y = Petal.Width)) +
+  geom_smooth(method = "lm", colour = "grey20") +
+  geom_point(aes(colour = Species))
 ```
 
-In order to make the final compound figure, I will use `theme_classic()` and modify it to remove the colour legend. I will then add the legend only to the scatter plot but not to the two histograms, since all three plots use the same colours.
-```{r theme_init}
-theme_classic_lvb <- theme_classic() +
-  theme(legend.position = "none")
+#### Position
+
+In addition to having a stat, which handles relevant calculations, geoms also have a position, which ostensibly handles what happens when parts of the geom overlap. This usually happens when we have overlapping data points, and it is most often important when we make histograms. Let's deviate from our iris dataset for a minute.
+
+```{r}
+df <- data.frame(value = rep(1:2, 8),
+                 label = rep(c("A", "B"), times = c(10, 6)))
+head(df)
+```
+The data above contains 16 measurements, each equal to 1 or 2, and labelled either A or B. There are 10 A's (5 1s and 5 2s) and 6 Bs (3 1as and 3 2s). Let's make a histogram of the data, colouring it by label, The default position of histograms is `position = "stack"`, meaning equal values appear on top of each other. This is why we see two columns, each of height 8. 
+
+```{r}
+ggplot(df, aes(x = value, fill = label)) +
+  geom_histogram()
 ```
 
-```{r custom_theme}
-scatter_species <- ggplot(iris, aes(x = Petal.Length, y = Petal.Width)) +
-  theme_classic_lvb + theme(legend.position = "top") +
-  geom_point(aes(colour = Species)) +
-  geom_smooth(method = "lm")
+However, most of the time when we plot histograms and colour them by some category, we expect them to overlap instead of stack. To overlap, we must set `position = "identity"`. This way, the two columns are of size 5 (for A) and 3 (for B). B is plotted in front of A.
 
-hist_length <- ggplot(iris, aes(x = Petal.Length, fill = Species)) +
-  theme_classic_lvb +
+```{r}
+ggplot(df, aes(x = value, fill = label)) +
   geom_histogram(position = "identity")
-
-hist_width <- ggplot(iris, aes(x = Petal.Width, fill = Species)) +
-  theme_classic_lvb + 
-  geom_histogram(position = "identity")
-
-plot_grid(scatter_species, hist_length, hist_width)
 ```
 
-**Exercise 5** Choose a theme for your plots and see if you can edit an element of that theme, such as legend position or font size.
+We might also want to plot the data side by side. This is rather ill-advised for histograms, but it can be very useful in bar charts `geom_bar`.
 
-### Scales, colours and labels
-
-Now all three figures are in the same style. The next step is to fix the colours and labels across the figures to ones we like. We do this by setting *scales*. Scales typically correspond to the aesthetic mappings we use. I will change the x- and y-axes using `scale_x_continuous()` and `scale_y_continuous()`. Note that if I had a discrete variable such as `Species` on one of the axes, I would instead use `scale_*_discrete()`. 
-
-The axis scales allow us to control the text and ticks associated with each axis. I would like the petal length and width axes to have similar ticks across all plots, and I would also like the two histograms to have comparable y-axes. We have to do this bit manually, setting the limit and the breaks on each axis. I might run `summary(iris)` to give me an idea of what number ranges to use.
-
-```{r summary}
-summary(iris)
+```{r}
+ggplot(df, aes(x = value, fill = label)) +
+  geom_bar(position = "dodge")
 ```
 
-```{r labs}
-length_lims <- c(0.8, 7.2); length_breaks <- 1:7
-width_lims <- c(-0.1, 2.6); width_breaks <- seq(0, 2.5, .5)
+**Exercise 5: Positions.** Can you make the figure below? 
+```{r share_ex_5, echo = FALSE}
+ggplot(iris, aes(x = Petal.Length, fill = Species)) +
+  geom_histogram(alpha = 0.5, position = "identity")
 ```
 
-Again, while the order in which you build a `ggplot` figure doesn't always hugely matter, I like setting scales *after* geoms. 
+## Faceting
 
-```{r scales}
-scatter_species <- ggplot(iris, aes(x = Petal.Length, y = Petal.Width)) +
-  theme_classic_lvb + theme(legend.position = "top") +
+So far we have discussed colour as a way of distinguishing between discrete groups in the data, e.g. iris species. However, sometimes it is clearer and more preferable to create a separate plot for each group. This is particularly true when there are many groups.
+
+Splitting a plot by group is known as _faceting_. There are two ways of faceting: `facet_grid()` and `facet_wrap()`. As the name suggests, the former creates a grid, and is particularly useful when we are faceting by two variables. The latter is designed for faceting by one variable, and will wrap the plots so they fall in a roughly rectangular shape.
+
+The syntax of `facet_*()` is a bit unusual: `facet_wrap(~<var>)` for one variable, and `facet_grid(<var_rows> ~ <var_cols>)` for two variables in a grid. So if we wanted to split the petal length histogram by species, we would write:
+```{r}
+ggplot(iris, aes(x = Petal.Length)) +
+  facet_wrap(~Species) +
+  geom_histogram()
+```
+
+Variables can be column names of the data, but like aesthetics, they can also be expressions. Let's say I want to split the histograms by species _and_ by petal width, so flowers with petal width below 1.5cm are in one group, and above are in another.
+
+```{r}
+ggplot(iris, aes(x = Petal.Length)) +
+  facet_grid((Petal.Width >= 1.5) ~ Species) +
+  geom_histogram()
+```
+
+Above, `FALSE` and `TRUE` refer to the statement `Petal.Width >= 1.5`: flowers with narrower petals are in the top row, and flowers with wide petals are in the bottom row. We can clarify this in the labels by adding a labeller. A labeller is a function which connects the variable values (in this case `FALSE` and `TRUE`) with the labels we would like to see printed on the screen (e.g. `narrow` and `wide`).
+
+We first start by defining the labels as named arrays. The names of the array elements should correspond to values of the faceted variables, like so:
+```{r}
+width_labs <- c("TRUE" = "Wide petals", "FALSE" = "Narrow petals")
+species_labs <- c("setosa" = "I. setosa", "versicolor" = "I. versicolor", "virginica" = "I. virginica")
+```
+
+The labeller function then links these arrays to the faceted variables. There are two ways of writing a labeller: using `.row` and `.col` to link the labels to rows and columns, respectively, or using variable names directly. Below, you can see `.row` used for the petal width distiniction, and `Species` used instead of `.col`:
+
+```{r}
+ggplot(iris, aes(x = Petal.Length)) +
+  facet_grid((Petal.Width >= 1.5) ~ Species, labeller = labeller(.rows = width_labs, Species = species_labs)) +
+  geom_histogram()
+```
+
+## Scales
+
+This might seem like a lot of work, and it is unusually so. With the exception of facet, most label printing, colour setting, etc., is done somewhat more straightfowrardly by _scales_. Scales control aesthetic mappings, and take the format of `scale_<aesthetic>_<type>()`. So if I want to format the discrete x-axis, I would add `scale_x_discrete()` to my plot. Every aesthetic has a scale, and scale types can vary considerably: I tend to use `discrete` and `continuous` for axes, and `manual` for colour. The latter allows me to set specific colours.
+
+Some elements are common to a lot of scales. The `name` or the first argument of the aesthetic will serve as its axis or legend title. If the scale is numeric, `limits` set the range of values printed, and `breaks` are the points where we see labels printed. These labels are handled by a `label` option (and not a labeller, unlike facets!). Finally, you can set specific values with, you guessed it, `values`. Here are these all in action:
+
+```{r}
+ggplot(iris, aes(x = Species, y = Petal.Length, fill = Species)) +
+  geom_boxplot() +
+  scale_x_discrete("Species", labels = species_labs) +
+  scale_y_continuous("Petal Length", limits = c(0, 8), breaks = 1:7) +
+  scale_fill_manual("", values = c("virginica" = "red", "setosa" = "blue", "versicolor" = "yellow"),
+                    labels = species_labs)
+```
+
+**Exercise 6: Scales.** Can you make the figure below? To get these exact colours, I used the Java palette from the `MetBrewer` package, but more on that later. For now you can just copy them from here:
+```{r}
+species_cols <- c("setosa" = "#663171", "versicolor" = "#ea7428", "virginica" = "#0c7156")
+```
+
+```{r share_ex_6, echo = FALSE}
+ggplot(iris, aes(x = Petal.Length, y = Petal.Width)) +
+  geom_smooth(method = "lm", colour = "grey70") +
   geom_point(aes(colour = Species)) +
-  geom_smooth(method = "lm") +
-  scale_x_continuous("Petal length", limits = length_lims, breaks = length_breaks) +
-  scale_y_continuous("Petal width", limits = width_lims, breaks = width_breaks)
-
-hist_length <- ggplot(iris, aes(x = Petal.Length, fill = Species)) +
-  theme_classic_lvb +
-  geom_histogram(position = "identity", binwidth = 0.2) +
-  scale_x_continuous("Petal length", limits = length_lims, breaks = length_breaks) +
-  scale_y_continuous("Count", limits = c(0, 30), breaks = seq(0, 30, 10))
-
-hist_width <- ggplot(iris, aes(x = Petal.Width, fill = Species)) +
-  theme_classic_lvb + 
-  geom_histogram(position = "identity", binwidth = 0.1) +
-  scale_x_continuous("Petal width", limits = width_lims, breaks = width_breaks) +
-  scale_y_continuous("Count", limits = c(0, 30), breaks = seq(0, 30, 10))
-
-plot_grid(scatter_species, hist_length, hist_width)
+  scale_x_continuous("Petal length (cm)", breaks = 0:7) +
+  scale_y_continuous("Petal width (cm)", breaks = 0:3) +
+  scale_colour_manual("Species", values = species_cols, labels = species_labs)
 ```
 
-After we have fixed the axes, we can think of changing the colours. When using colours to plot a discrete, unordered variable such as Species (as opposed to a continuous one such as temperature, say), we should ideally use distinct colourblind-friendly colours. There are a lot of pallette websites out there for inspiration, as well as `R` packages such as `MetBrewer` with ready-made palettes. In order to change the colour or fill of a plot, we use `scale_colour_manual()` or `scale_fill_manual()` respectively. We will also use this opportunity to make the histograms transparent by setting `alpha = 0.5`, to set bin widths, and to change the colour of the linear fit in the scatter plot to something less bright.
+## Themes
 
-```{r col_def}
-species_cols <- c("setosa" = "#dd5129", "versicolor" = "#0f7ba2", "virginica" = "#fab255")
+Scales control for aesthetic mappings, but there are design choices that go in a figure that are static and unrelated to aesthetics at all. Background colour, text font, and legend position all fall into this category. These features are all controlled by the theme in a plot.
+
+There are some themes already built into `ggplot2`. Among them are the default `theme_gray()`, its black & white equivalent `theme_bw`, and `theme_classic()` which you might recognise especially from scientific publications. Here is an example of the same plot using each of these three themes. Note that I can save the plot as a variable `p`, and then just add the relevant theme `p +  theme_*`.
+
+```{r}
+p <- ggplot(iris, aes(x = Petal.Length, y = Petal.Width, colour = Species)) +
+  geom_point()
+p
+p + theme_bw()
+p + theme_classic()
 ```
 
-```{r cols}
-scatter_species <- ggplot(iris, aes(x = Petal.Length, y = Petal.Width)) +
-  theme_classic_lvb + theme(legend.position = "top") +
+If you're looking for something a bit jazzier, I recommend the `ggthemes` package (LINK), which includes themes inspired by designs from The Economist, FiveThirtyEight, and Tufte, among others.
+
+We can also write our own custom themes. It would be beyond the scope of this tutorial to explain all the features of a theme and how they can be altered. If you'd like a challenge, I recommend this [doc page](https://ggplot2.tidyverse.org/reference/theme.html). A great way to browse through custom themes and see how people tweak them is through the #TidyTuesday project (see below).
+
+For now, I will introduce you to two theme parameters I think are particularly important: base size and legend position. Base size is the default font size of a theme and also affects line and rectangle sizes. This is useful, because you can make a plot printer-friendly for any format, from single column width, to A1 poster size. 
+
+Legend position is another useful feature to know your way around. If you use the same colour scheme in multiple subfigures you might want the legend visible in only one of them. Alternatively, you might want to move the legend position away from its default (usually to the right) and somewhere else, e.g. the top or the bottom of the figure. These are all controlled by the `legend.position` parameter, which can take values `"none"`, `"left"`, `"right"`, `"bottom"`, or `"top"`.
+
+The default base size is 11, which is good for print. The default legend position can vary from theme to theme, but it is usually on the right. Below is an example of a plot with larger fonts and legend moved to the top. Note how while the `base_size` parameter is an argument of `theme_classic()`, the legend position goes in its own `theme()` function.
+
+```{r}
+p + theme_classic(base_size = 18) + theme(legend.position = "top")
+```
+
+The typical way of defining themes is by starting from a fairly minimal theme, and adding to it additional parameters. A variation on the theme I use in my day-to-day work is this:
+
+```{r}
+theme_lvb <- theme_minimal(base_size = 10) +
+  theme(
+    text = element_text(color = "gray20"),
+    # Legend
+    legend.position = "top",
+    legend.direction = "horizontal",
+    legend.justification = 0.1,
+    legend.title = element_blank(),
+    # Axes
+    axis.text = element_text(face = "italic"),
+    axis.title.x = element_text(vjust = -1),        
+    axis.title.y = element_text(vjust = 2),
+    axis.ticks.x = element_line(color = "gray40", size = 0.3),
+    axis.ticks.y = element_blank(),
+    axis.line = element_line(color = "gray40", size = 0.3),
+    axis.line.y = element_blank(),
+    # Panel
+    panel.grid.major = element_line(color = "gray40", size = 0.5),
+    panel.grid.major.x = element_blank())
+```
+
+It is a fair amount of tweaking and setting parameters, but the good news is once you set up a theme you like, you can use it in pretty much any plot.
+
+```{r}
+p + theme_lvb
+```
+
+## Tweaks
+
+With this we have now covered most of ggplot's main features. What's left is final touches: how to add titles and other annotation, how to put multiple figures in a single plot, and how to (automatically) save figures with sensible resolution, size, and file type. 
+  
+### Annotation
+
+In presentations, less so than in publications, it helps to give figures titles and occasionally subtitles, which can be done using `ggtitle()`. Sometimes you might also  want to annotate a particular part of the plot with additional text. This is done using _annotation layers_. For a full description, head over to the [docs](https://ggplot2.tidyverse.org/reference/annotate.html). Below is an example using both a rectangle highlight and some text.
+
+```{r}
+p + 
+  ggtitle("Title", subtitle = "Optional descriptive subtitle") +
+  annotate("rect", xmin = 0.8, xmax = 2.1, ymin = 0, ymax = .7, alpha = 0.2) +
+  annotate("text", x = 1.5, y = 0.85, label = "smaller flowers")
+```
+
+### Compound figures
+
+If annotations might be more useful in presentations, then creating labelled subfigures is incredibly important for papers, and particularly for experimental papers. So far we have only really used `ggplot` features. This is where `cowplot` comes in very handy!
+
+In its simplest form, `plot_grid()` allows us to create rectangular grids, including giving them labels. Note the labels are size 14 by default, you might want to reduce them!
+
+```{r}
+q1 <- ggplot(iris, aes(x = Species, y = Petal.Length)) + geom_boxplot()
+q2 <- ggplot(iris, aes(x = Species, y = Petal.Width)) + geom_boxplot()
+plot_grid(q1, q2, labels = c("A", "B"), label_size = 12)
+```
+
+Unfortunately, `plot_grid` can only create rectangular grids of plots. But we can add plot grids inside other plot grids, to make more complicated compound plots. We can also control the relative widths and heights of the plots with respect to each other.
+
+```{r}
+p <- ggplot(iris, aes(x = Petal.Length, y = Petal.Width)) + geom_point()
+
+q <- plot_grid(q1, q2, labels = c("B", "C"), label_size = 12)
+
+plot_grid(p, q, nrow = 2, labels = c("A", ""), label_size = 12, rel_heights = c(2, 1))
+```
+
+In the plot above, I first put the two box plots together in their own grid, and then I put that grid below the scatter plot. I also increased the relative height of the scatter plot to be twice that of the box plots.
+
+**Exercise 7: Putting it all together.** We have done a full circle! Can you make the figure below?
+
+```{r, echo = FALSE}
+p1 <- ggplot(iris, aes(x = Petal.Length, fill = Species)) +
+  theme_lvb + theme(legend.position = "none") +
+  geom_histogram(position = "identity", alpha = 0.7, binwidth = .25) +
+  scale_x_continuous("Petal length (cm)", breaks = 0:7) +
+  scale_y_continuous("Count") +
+  scale_fill_manual("Species", values = species_cols, labels = species_labs)
+p2 <- ggplot(iris, aes(x = Petal.Width, fill = Species)) +
+  theme_lvb + theme(legend.position = "none") +
+  geom_histogram(position = "identity", alpha = 0.7, binwidth = .25) +
+  scale_x_continuous("Petal width (cm)", breaks = 0:3) +
+  scale_y_continuous("Count") +
+  scale_fill_manual("Species", values = species_cols, labels = species_labs)
+q <- ggplot(iris, aes(x = Petal.Length, y = Petal.Width)) +
+  theme_lvb +
+  geom_smooth(method = "lm", colour = "grey70") +
   geom_point(aes(colour = Species)) +
-  geom_smooth(method = "lm", colour = "grey40") +
-  scale_x_continuous("Petal length", limits = length_lims, breaks = length_breaks) +
-  scale_y_continuous("Petal width", limits = width_lims, breaks = width_breaks) +
-  scale_colour_manual(values = species_cols)
+  scale_x_continuous("Petal length (cm)", breaks = 0:7) +
+  scale_y_continuous("Petal width (cm)", breaks = 0:3) +
+  scale_colour_manual("Species", values = species_cols, labels = species_labs)
 
-hist_length <- ggplot(iris, aes(x = Petal.Length, fill = Species)) +
-  theme_classic_lvb +
-  geom_histogram(position = "identity", binwidth = 0.2, alpha = 0.5) +
-  scale_x_continuous("Petal length", limits = length_lims, breaks = length_breaks) +
-  scale_y_continuous("Count", limits = c(0, 30), breaks = seq(0, 30, 10)) +
-  scale_fill_manual(values = species_cols)
-
-hist_width <- ggplot(iris, aes(x = Petal.Width, fill = Species)) +
-  theme_classic_lvb + 
-  geom_histogram(position = "identity", binwidth = 0.1, alpha = 0.5) +
-  scale_x_continuous("Petal width", limits = width_lims, breaks = width_breaks) +
-  scale_y_continuous("Count", limits = c(0, 30), breaks = seq(0, 30, 10)) +
-  scale_fill_manual(values = species_cols)
-
-plot_grid(scatter_species, hist_length, hist_width)
+p <- plot_grid(p1, p2, ncol = 1, labels = c("B", "C"), label_size = 11)
+plot_grid(q, p, nrow =1, labels = c("A", ""), label_size = 11)
 ```
 
-**Exercise 6** Adjust the scales for your plots. How did you go about choosing axis limits and breaks? What about colours?
+### Saving figures
 
-### Combining and labelling plots
+All that is left now is to save our figure to file. Figures you generate usually appear at the bottom right of RStudio, under the *Plots* tab. The easiest way to save them is to click on **Export > Save as Image...**, and set the file format and size of the figure before saving it to file.
 
-Finally, it is time to reorder and label the three plots we have made into one big compound figure. I want my compound figure to have two labelled parts: **a** for the scatter plot, and **b** below it for the two histograms side by side. 
+Is there a better way? Yes. The `ggsave()` function does exactly that, and even lets you fix the resolution (defaults to the standard print DPI = 300). In case like me, you get confused about conversions between units (inch, cm / mm, or px) and end up looking it up every time, a full text width / two-column image should have width 190mm, allowing for a 1cm page margin on each side. For single-column images, you should aim for width of 90mm. As a pro tip, always set the width and the desired aspect ratio first, then calculate the height of a figure as `height = width / aspect_ratio`.
 
-```{r final_grid}
-hists <- plot_grid(hist_length, hist_width)
-plot_grid(scatter_species, hists, ncol = 1, labels = letters[1:2], rel_heights = c(1, .5))
+To make my life a bit easier, I have written myself a function to do this automatically. I use the same function across all of my projects, the same way I use the same ggplot theme over and over again. It has two required parameters: a ggplot object (grids work too!) `p`, and a file name `filename`. It has an optional parameter `size` which should typically be between 0 and 1, where one is "full-size" and 0.5 is "single-column", and `ar` as the (width-to-height) aspect ratio. The file format is set by `dev`. I most often use `jpeg` but for journal submission you might want to change that to `eps`, or `pdf`.
+
+```{r}
+plot_save <- function(p, filename, size = 1, ar = 1, dev = "jpeg"){
+  allowed_devs <- c("eps", "ps", "tex", "pdf", "jpeg", 
+                    "tiff", "png", "bmp", "svg")
+  if (!(dev %in% allowed_devs))
+    stop("Invalid device.")
+  if (dev != "jpeg" & !str_detect(filename, paste0("\\.", dev)))
+    filename <- paste0(filename, ".", dev)
+  if (dev == "jpeg" & !str_detect(filename, "\\.jpg|\\.jpeg"))
+    filename <- paste0(filename, ".jpg")
+  w <- round(190 * size)
+  h <- w/ar
+  ggsave(filename = filename,
+         plot = p,
+         width = w,
+         height = h,
+         units = "mm",
+         device = dev)
+}
 ```
 
-Since `plot_grid()` can only make rectangular grids, I had to use it once to combine the two histograms and then a second time to add the scatter plot and the labels.
-
-**Exercise 7** Can you change the plot layout above so the histograms are stacked to the right of the scatter plot instead of lined below it?
+All that's left to do is save our figure: `plot_save(p, "my_plot.jpg", size = 1, ar = 4/3)`. And we're done!
 
 ## Final thoughts and further reading
 

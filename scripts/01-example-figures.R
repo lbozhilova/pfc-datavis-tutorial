@@ -50,16 +50,3 @@ plot_save(p, "figures/ex_iris_1.jpg", size = .5)
 plot_save(q, "figures/ex_iris_2.jpg", size = .5)
 plot_save(plot_grid(p, p1), "figures/ex_iris_compare.jpg", size = 1, ar = 2)
 
-
-df <- cbind(iris, Label = "")
-df$Label[c(10, 60, 110)] <- paste("I.", as.character(df$Species[c(10, 60, 110)]))
-q1 <- ggplot(df, aes(x = Petal.Length, y = Petal.Width, colour = Species)) +
-  theme_lvb + theme(legend.position = "none") +
-  ggtitle("Iris petal length and width are correlated") +
-  geom_point() +
-  geom_text_repel(aes(label = Label), size = 5, force_pull = 1.5) +
-  scale_x_continuous("Petal length (cm)", breaks = 0:7) +
-  scale_y_continuous("Petal width (cm)", breaks = 0:3) +
-  scale_colour_manual("Species", values = iris_cols, labels = iris_labs)
-q1
-

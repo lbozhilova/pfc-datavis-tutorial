@@ -21,13 +21,13 @@ theme_lvb <- theme_minimal(base_size = 10) +
     axis.text = element_text(face = "italic"),
     axis.title.x = element_text(vjust = -1),        
     axis.title.y = element_text(vjust = 2),
-    axis.ticks.x = element_line(color = "gray40", size = 0.3),
-    axis.ticks.y = element_blank(),
+    axis.ticks.x = element_line(color = "gray70", size = 0.3),
+    axis.ticks.y = element_line(color = "gray70", size = 0.3),
     axis.line = element_line(color = "gray40", size = 0.3),
-    axis.line.y = element_blank(),
+    axis.line.y = element_line(color = "gray40", size = 0.3),
     # Panel
-    panel.grid.major = element_line(color = "gray40", size = 0.5),
-    panel.grid.major.x = element_blank())
+    panel.grid.major = element_line(color = "gray70", size = 0.3),
+    panel.grid.major.x = element_line(color = "gray70", size = 0.3))
 
 #----- Save figure
 plot_save <- function(p, filename, size = 1, ar = 1, dev = "jpeg"){

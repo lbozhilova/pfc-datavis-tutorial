@@ -2,7 +2,7 @@
 ##### Example figures #####
 ###########################
 
-# Last edited: 26/04/22
+# Last edited: 04/05/22
 # Description: Figures used at the beginning of the tutorial.
 
 #----- Packages

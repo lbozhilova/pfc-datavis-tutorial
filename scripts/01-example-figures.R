@@ -9,7 +9,6 @@
 require("tidyverse")
 require("MetBrewer")
 require("cowplot")
-require("ggrepel")
 
 #----- Code
 source("scripts/00-plot-setup.R")
@@ -49,4 +48,3 @@ plot_grid(p, p1)
 plot_save(p, "figures/ex_iris_1.jpg", size = .5)
 plot_save(q, "figures/ex_iris_2.jpg", size = .5)
 plot_save(plot_grid(p, p1), "figures/ex_iris_compare.jpg", size = 1, ar = 2)
-

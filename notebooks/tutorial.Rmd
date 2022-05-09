@@ -699,14 +699,14 @@ plot_save <- function(p, filename, size = 1, ar = 1, dev = "jpeg"){
 }
 ```
 
-It even adds the file format extension if you forget to type it! All that's left to do is save our figure. No need for unit conversion or anything! I use the same `plot_save()` function for all of my figures, just like I use the same theme. In fact, most of the time I don't look at these two at all. I keep them in a separate [file](https://github.com/lbozhilova/pfc-datavis-tutorial/blob/main/scripts/00-plot-setup.R), which I execute at the start of all my plot-making [scripts](https://github.com/lbozhilova/pfc-datavis-tutorial/blob/main/scripts/01-example-figures.R). 
+It even adds the file format extension if you forget to type it! All that's left to do is save our figure. No need for unit conversion or anything! I use the same `plot_save()` function for all of my figures, just like I use the same theme. In fact, most of the time I don't look at these two at all. I keep them in a separate [file](https://github.com/lbozhilova/pfc-datavis-tutorial/blob/main/scripts/00-plot-setup.R), which I execute at the start of all my plot-making [scripts](https://github.com/lbozhilova/pfc-datavis-tutorial/blob/main/scripts/01-example-figures.R).
 ```{r eval = FALSE}
 plot_save(p_scatter + theme_lvb, "scatter.jpg", size = 1, ar = 2)
 ```
 
 # Final thoughts and further reading
 
-As I hope I've convinced you, making figures is an iterative process done line by line and tweak by tweak. In the tutorial above we covered how to think about plots, and how to build them by starting from their core functional components (aesthetic mappings and geometric objects), before adding flourish (scales and themes). However, inevitably there are many `ggplot2` features we didn't talk about at all, or only mentioned briefly. If you are curious to read more, here are some of my favourite resources.
+As I hope I've convinced you, making figures is an iterative process done line by line and tweak by tweak. In the tutorial above we covered how to think about plots, and how to build them by starting from their core functional components (aesthetic mappings and geometric objects), before adding flourish (scales and themes). If there is anything you struggled with, you can check out the exercise solutions [here](https://github.com/lbozhilova/pfc-datavis-tutorial/blob/main/scripts/02-exercise-solutions.R). Inevitably there are many `ggplot2` features we didn't talk about at all, or only mentioned briefly. If you are curious to read more, here are some of my favourite resources.
 
 On figure-making in general, I found these [slides](https://drive.google.com/file/d/1LouVvISCRlWkItZgzoHcgoU5Q1VyHT4U/view) by Sam Way and Dan Larremore inspiring. They are from a workshop on data visualisation and contain some neat thoughts about how we communicate through figures. The slides are completely code-agnostic, so worth checking out even if you don't use `ggplot2`!
 

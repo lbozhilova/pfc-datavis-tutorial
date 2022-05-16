@@ -18,20 +18,21 @@ knit: (function(input_file, encoding) {
 knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE, fig.align = "center")
 ```
 
-_This tutorial reflects my own inexpert, somewhat aesthetically impaired opinions. Proceed at your own peril._ 
+_This_ `ggplot2` _tutorial was originally written for members of [MitoCAMB](https://www-neurosciences.medschl.cam.ac.uk/mitocamb/) and later expanded to a workshop for the [MRC Mitochondrial Biology Unit](https://www.mrc-mbu.cam.ac.uk/). It reflects my own inexpert, somewhat aesthetically impaired opinions. Proceed at your own peril._ 
 
 ___
+
 A key part of our job as research scientists is to communicate our findings to a broader audience, including through papers, presentations, and conference posters. This means we routinely make and re-make figures which illustrate our work and any uncertainties associated with it. Data visualisation is a part of data science that we all engage in, regardless of our field of expertise.
 
 Making figures shouldn't be painful and confusing. Instead, it should be something we approach systematically and with a level of confidence. With this tutorial, I want to introduce you to my favourite data visualisation tool, `ggplot2`, and also to the way I think about building and refining figures.
 
-This tutorial has three main parts. First we discuss the layered *grammar of graphics*, which is a systematic way of thinking about the components of a figure. This part is code-free, but should hopefully help make sense of the code to come. In the second part, we go through the core features of `ggplot2`, and how we can leverage these to make versatile, complex data visualisations. Finally, we talk about figure refinement, from changing axis labels to image size and resolution. I should warn you that in this last part I'm at my least authoritative and nevertheless most opinionated. But before we jump into it, let's set up.
+This tutorial has three main parts. First we discuss the layered *grammar of graphics*, which is a systematic way of thinking about the components of a figure. This part is code-free, but should hopefully help make sense of the code to come. In the second part, we go through the core features of `ggplot2`, and how we can leverage these to make versatile, complex data visualisations. Finally, we talk about figure refinement, from changing axis labels to setting image size and resolution. I should warn you that in this last part I'm at my least authoritative and nevertheless most opinionated. But before we jump into it, let's set up.
 
 # Materials and set-up
 
 This tutorial is for you if you have some experience with `R`, even if only a little. You don't need any prior experience with `ggplot2` specifically, or with the wider `tidyverse` ecosystem. 
 
-You need an up-to-date version of `R` installed, and I thoroughly recommend working in the RStudio IDE. This R Markdown notebook was written in `R 4.1.3`. 
+You need an up-to-date version of `R` installed, and I thoroughly recommend working in the RStudio IDE. This R Markdown notebook was  originally written in `R 4.1.3` and mostly recently updated in `R 4.2.0`. 
 
 In this tutorial we'll use two `R` packages: [`tidyverse`](https://www.tidyverse.org/) and [`cowplot`](https://wilkelab.org/cowplot/index.html). The former contains `ggplot2` in addition to a number of other data science packages. The latter is an add-on to `ggplot2`, designed to make publication-ready figures. We will use it in Part III. You can install or update packages in the usual way if you need to.
 ```{r install, eval = FALSE}
@@ -235,7 +236,7 @@ ggplot(iris, aes(x = Species, y = Petal.Length)) +
 
 ### Statistical transformations
 
-Data visualisation is ultimately a branch of statistics and like all branches of statistics, it (unfortunately) requires calculations, done if not by us then by the computer. And different types of plots, i.e. different geoms, require different calculations.
+Data visualisation is ultimately a branch of statistics and like all branches of statistics, it (unfortunately) requires calculations, done if not by us then by a computer. And different types of plots, i.e. different geoms, require different calculations.
 
 A scatter plot `geom_point()` is easy: we take the data as it is, no maths necessary. A histogram `geom_histogram()` is, however, more involved: we need to decide how to bin the data, and then count how many points fall in each bin. We might want to set parameters like binwidth or breakpoints in a histogram. In order to get the right height and shape boxplot `geom_boxplot()` we need to calculate the median and interquartile range of the data, instead of binning it. A violin plot `geom_violin()` may intuitively feel like a type of boxplot, but the maths behind it is different still: instead of quartiles, the shape of the distribution is estimated. Different geoms then require different _statistical transformations_.
 
@@ -352,7 +353,7 @@ ggplot(df, aes(x = factor(value), fill = label)) +
   geom_bar(position = "dodge")
 ```
 
-**Exercise 8: Positions.** Going back to our iris dataset, can you make the figure below? How do the column heights differ from earlier histograms we’ve made? As an additional exercise, can you see a difference between using `geom_line(stat = "bin")` and `geom_freqpoly()`? Hint: try adding colour to your plots.
+**Exercise 8: Positions.** Going back to our iris dataset, can you make the figure below? How do the column heights differ from earlier histograms we’ve made?
 ```{r pos_ex_8, echo = FALSE}
 ggplot(iris, aes(x = Petal.Length, fill = Species)) +
   geom_histogram(alpha = 0.5, position = "identity")
@@ -393,7 +394,7 @@ ggplot(iris, aes(x = Petal.Length, y = Petal.Width)) +
 ```
 
 ___
-Between aesthetic mapping and assignment, layered geometric objects, their statistical transformations and positioning, and finally facets you now have the tools to make some really complex, interesting and hopefully useful plots. However, these won't necessarily satisfy your inner graphic designer. Data visualisation is a science as much as an art (well, perhaps not in my hands...), and what's left is for us to "make sh!t pretty", as a former colleague likes to put it.
+Between aesthetic mapping and assignment, layered geometric objects, their statistical transformations and positioning, and finally facets you now have the tools to make some really complex, interesting and hopefully useful plots. However, these won't necessarily satisfy your inner graphic designer. Data visualisation is a science as much as an art (well, perhaps not in my hands...), and what's left is for us to "make stuff pretty", as a former colleague likes to put it.
 
 # Part III: Refining figures
 
@@ -405,14 +406,18 @@ Of course, this process is a lot less linear than I'm making it sound. Occasiona
 
 With the exception of facet labels, most label printing, colour setting, etc., is managed using scales. Scales control aesthetic mappings and take the format of `scale_<aesthetic>_<type>()`. So if I want to format a discrete x-axis, I would add `scale_x_discrete()` to my plot. Every aesthetic has a scale and scale types can vary considerably. I tend to use `discrete` and `continuous` for axes, and `manual` for colour. The latter allows me to set specific colours.
 
-Like geoms, scales have parameters you can set. A lot of these are common to most, if not all, scales. For example, the first argument of the scale is its `name` and serves as an overall aesthetic title. If the scale is numeric, `limits` set the range of values printed and `breaks` are the points where we see labels printed. These labels are handled by a `label` option. Finally, you can set specific values with, you guessed it, `values`. Since we often want to reuse labels and values, I prefer defining them separately as named arrays, like so:
+Like geoms, scales have parameters you can set. A lot of these are common to most, if not all, scales. For example, the first argument of the scale is its `name` and serves as an overall aesthetic title. If the scale is numeric, `limits` set the range of values printed and `breaks` are the points where we see labels printed. These labels are handled by a `labels` parameter. Finally, you can set specific values with, you guessed it, `values`. Since we often want to reuse labels and values, I prefer defining them separately as named arrays, like so:
 
 ```{r labs_cols}
-species_labs <- c("setosa" = "I. setosa", "versicolor" = "I. versicolor", "virginica" = "I. virginica")
-species_cols <- c("setosa" = "red", "versicolor" = "blue", "virginica" = "yellow")
+species_labs <- c("setosa" = "I. setosa", 
+                  "versicolor" = "I. versicolor", 
+                  "virginica" = "I. virginica")
+species_cols <- c("setosa" = "red", 
+                  "versicolor" = "blue", 
+                  "virginica" = "yellow")
 ```
 
-It is important that you include the names of each element of these arrays! Otherwise you might accidentally refactor some of your data and without realising unintentionally change colours between plots. I also strongly encourage you to name these arrays consistently. Personally, I use both the relevant variable name (`species`) and the parameter name (`lab` for labels and `col` for colours).
+It is important that you include the names of each element of these arrays! Otherwise you might accidentally refactor some of your data and without realising unintentionally change colours between plots. I also strongly encourage you to name these arrays consistently. Personally, I use both the relevant variable name (e.g. `species`) and the parameter name (e.g. `lab` for labels and `col` for colours).
 
 Here is the boxplot from earlier, now with adjusted scales.
 ```{r scales}
@@ -606,7 +611,7 @@ With this we have now covered most of `ggplot2`'s main features. What's left is 
 
 ### Compound figures
 
-If annotations might be more useful in presentations, then creating labelled subfigures is incredibly important for print, and particularly when writing experimental papers. So far we have only really used `ggplot` features. This is where `cowplot` comes in very handy!
+If annotations might be more useful in presentations, then creating labelled subfigures is incredibly important for print, and particularly when writing experimental papers. So far we have only really used `ggplot2` features. This is where `cowplot` comes in very handy!
 
 In its simplest form, the function `plot_grid()` allows us to create rectangular grids, including the option to give individual plots labels. Note the labels are size 14 by default, you might want to reduce them.
 
@@ -626,7 +631,7 @@ q <- ggplot(iris, aes(x = Petal.Length, y = Petal.Width)) +
 plot_grid(p, q, nrow = 2, labels = c("", "C"), label_size = 12, rel_heights = c(1, 2))
 ```
 
-In the plot above, I saved the first grid I showed you as `p`, and put it inside another grid with the scatter plot `q`. I also increased the relative height of the scatter plot to be twice that of the boxplots.
+In the plot above, I saved the first grid I showed you as `p`, and put it inside another grid with the scatter plot `q`. I also increased the relative height of the scatter plot to be twice that of the boxplots. When I make larger, more complicated grids, I like to draw them out by hand first, in order to determine the best layout. When I get to writing the code, I first group together smaller figures that are of the same size (e.g. **A** and **B** above), before pairing them with larger figures (e.g. **C** above).
 
 **Exercise 13: The final challenge.** This is it! Last one! Can you make the figure below?
 
@@ -676,7 +681,7 @@ ggsave(filename = "scatter.jpg", plot = p_scatter,
 
 This is a lot to keep track of. Most of the time, I'll either want the width of my figures to be a full line of text (18cm) or a fraction of that (e.g. 9cm for single-column figures). If you've ever used LaTeX to write a paper or your thesis, you might be familiar with lines like `\includegraphics[width=0.50\linewidth]{scatter.jpg}`. In LaTeX,  the `width=0.50\linewidth` option resizes an image so that it takes up half the width of a line of text.
 
-To make my life a bit easier, I've written my own wrapper function for `ggsave()` which uses line width fractions just like LaTeX. Instead of width, height, and units, my `pplot_save()` function has two parameters: `size`, which acts as a proportion of line width (i.e. `size = 1` corresponds to image width of 18cm), and aspect ratio `ar` (i.e. `ar = 2` will make a wide, squat image). Like `ggsave()`, I can set the file format using the `dev` parameter. I most often use `jpeg`, so I've set it as a default, but for journal submission you might want to change that to `eps`, or `pdf`. Here is `plot_save()`, in all its glory:
+To make my life a bit easier, I've written my own wrapper function for `ggsave()` which uses line width fractions just like LaTeX. Instead of width, height, and units, my `plot_save()` function has two parameters: `size`, which acts as a proportion of line width (i.e. `size = 1` corresponds to image width of 18cm), and aspect ratio `ar` (i.e. `ar = 2` will make a wide, squat image). Like `ggsave()`, I can set the file format using the `dev` parameter. I most often use `jpeg`, so I've set it as a default, but for journal submission you might want to change that to `eps`, or `pdf`. Here is `plot_save()`, in all its glory:
 
 ```{r}
 plot_save <- function(p, filename, size = 1, ar = 1, dev = "jpeg"){
